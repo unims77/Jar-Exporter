@@ -4,7 +4,8 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, StdCtrls, ExtCtrls, IniFiles, UntComProcedure, ShellApi;
+  Dialogs, StdCtrls, ExtCtrls, IniFiles, ShellApi, xmldom, XMLIntf, msxmldom,
+  XMLDoc;
 
 type
   TfrmMain = class(TForm)
@@ -22,6 +23,9 @@ type
     btnOpenJarFolder: TButton;
     btnOpenExportFolder: TButton;
     Label2: TLabel;
+    Label3: TLabel;
+    lblClassPath: TLabel;
+    XMLDocument1: TXMLDocument;
     procedure FormCreate(Sender: TObject);
     procedure btnLoadConfigClick(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
@@ -38,6 +42,7 @@ type
   public
     List : TStringList;
     mList: TStringList;
+    ClassPath : string;
 
     procedure MakeJarSilent;
   end;
@@ -45,9 +50,88 @@ type
 var
   frmMain: TfrmMain;
 
+Function SlashCon(Const s1, s2: String; NORMAL: Boolean = false): String;
+Function ReadAllDirectory(Const ParentDirectory, FileFilter: String; FileList: TStrings; AllDir: Boolean = False): Integer;
+
 implementation
 
 {$R *.dfm}
+
+Function ReadAllDirectory(Const ParentDirectory, FileFilter: String; FileList: TStrings; AllDir: Boolean): Integer;
+Var
+   BasePath                             : String;
+   Ptr                                  : PChar;
+   PtrFilter                            : Pchar;
+   FCount                               : integer;
+
+   Function SearchFile(Const ParentPath, FileFilter: String; FileList: TStrings): Integer;
+   Var
+      Status                            : Integer;
+      SearchRec                         : TSearchRec;
+   Begin
+
+      Result := 0;
+      Status := FindFirst(SlashCon(BasePath + ParentPath, FileFilter), faDirectory Or faHidden Or faSysFile, SearchRec);
+      Try
+         While Status = 0 Do
+         Begin
+            If (SearchRec.Name <> '.') And (SearchRec.Name <> '..') Then
+               If (SearchRec.Attr And faDirectory) <> 0 Then Begin
+                  If AllDir Then Begin
+                     FileList.Add(SlashCon(SlashCon(ParentPath, SearchRec.Name), ''));
+                     FCount := SearchFile(SlashCon(ParentPath, SearchRec.Name), FileFilter, FileList);
+                     Result := Result + FCount;
+                  End;
+               End Else Begin
+                  FileList.Add(SlashCon(ParentPath, SearchRec.Name));
+                  Inc(Result);
+               End;
+            Status := FindNext(SearchRec);
+         End;
+      Finally
+         FindClose(SearchRec);
+      End;
+   End;
+
+Begin
+   Result := 0;
+   PtrFilter := PChar(FileFilter);
+   While PtrFilter <> Nil Do Begin
+      Ptr := StrScan(PtrFilter, ';');
+      If Ptr <> Nil Then Ptr^ := #0;
+      BasePath := SlashCon(ParentDirectory, '');
+      Result := SearchFile('', PtrFilter, FileList);
+
+      //unims Ãß°¡
+      If Result = 0 Then Begin
+         BasePath := ExtractFileName(ParentDirectory);
+         FileList.Add('..\' + BasePath + '\');
+
+      End;
+
+      If ptr <> Nil Then Begin
+         Ptr^ := ';';
+         inc(ptr);
+      End;
+      PtrFilter := Ptr;
+   End;
+End;
+
+Function SlashCon(Const s1, s2: String; NORMAL: Boolean): String;
+Var
+   SlashChar                            : String;
+Begin
+   If NORMAL Then SlashChar := '/'
+   Else SLashChar := '\';
+   If S1 = '' Then Begin
+      Result := S2;
+      Exit;
+   End;
+   If AnsiLastChar(S1)^ <> SLashChar Then
+      Result := S1 + SLashChar + S2
+   Else
+      Result := S1 + S2;
+End;
 
 function FileSort(List: TStringList; Index1, Index2: Integer): Integer;
    function SlashCount(FileName : String) : Integer;
@@ -152,7 +236,7 @@ begin
    Direction  := '>>';
    MemoTemp.Clear;
    MemoTemp.Lines.Add(ExtractFileDrive(Application.ExeName));  
-   MemoTemp.Lines.Add('cd "' + ExtractFilePath(Application.ExeName) + 'bin"');
+   MemoTemp.Lines.Add('cd "' + ExtractFilePath(Application.ExeName) + ClassPath + '"');
 
    LogFile    := '"' + ExtractFilePath(Application.ExeName) + '_JarUtil.log"';
    TempPath   := SlashCon(edtExportPath.Text, 'Temp');
@@ -173,7 +257,7 @@ begin
                ReadAllDirectory(ExtractFilePath(Application.ExeName) + Trim(mList.ValueFromIndex[I]),
                    '*.*', fileList, True)
             else
-               ReadAllDirectory(ExtractFilePath(Application.ExeName) + 'bin\' + Trim(mList.ValueFromIndex[I]),
+               ReadAllDirectory(ExtractFilePath(Application.ExeName) + classPath + '\' + Trim(mList.ValueFromIndex[I]),
                    '*.*', fileList, True);
 
             //Delete Svn File
@@ -247,10 +331,20 @@ end;
 procedure TfrmMain.btnLoadConfigClick(Sender: TObject);
 var
    Ini  : TIniFile;
+   JavaPath : string;
+
+   LNodeElement, LNode: IXMLNode;
 begin
    ini := TIniFile.Create(ChangeFileExt(Application.ExeName, '.ini'));
    try
       edtJarPath.Text := ini.ReadString('Config', 'JarExe Path', 'jar.exe');
+      if not FileExists(edtJarPath.Text) then
+      begin
+         JavaPath := GetEnvironmentVariable('JAVA_HOME') + '\bin\jar.exe';
+         if FileExists(JavaPath) then
+            edtJarPath.Text := JavaPath;
+      end;
+      
       if Trim(edtJarPath.Text) = '' then
          edtJarPath.Text := 'jar.exe';
       edtExportPath.Text := ini.ReadString('Config', 'Export Path', ExtractFilePath(Application.ExeName) + 'JarExport');
@@ -263,6 +357,27 @@ begin
       Ini.ReadSectionValues('ExportConfig', List);
       lvJarList.Items.Clear;
       lvJarList.Items.Assign(List);
+
+      //find class target path...
+      ClassPath := 'bin';
+      if FileExists('.classpath') then
+      begin
+         XMLDocument1.LoadFromFile('.classpath');
+         LNodeElement := XMLDocument1.ChildNodes.FindNode('classpath');
+         if LNodeElement <> nil then
+         begin
+            LNodeElement := LNodeElement.ChildNodes.FindNode('classpathentry');
+            while (LNodeElement <> nil) do
+            begin
+                if LNodeElement.Attributes['kind'] = 'output' then
+                begin
+                  ClassPath := LNodeElement.Attributes['path'];
+                end;
+                LNodeElement := LNodeElement.NextSibling;
+            end;
+         end;
+      end;
+      lblClassPath.Caption := StringReplace(ClassPath, '/', '\', [rfReplaceAll]);
    finally
       Ini.Free;
    end;

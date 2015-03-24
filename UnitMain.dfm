@@ -1,7 +1,7 @@
 object frmMain: TfrmMain
   Left = 0
   Top = 0
-  Caption = 'Jar Export Util v1.1 (UNIMS)'
+  Caption = 'Jar Export Util v1.2 (UNIMS)'
   ClientHeight = 405
   ClientWidth = 614
   Color = clBtnFace
@@ -21,8 +21,8 @@ object frmMain: TfrmMain
   PixelsPerInch = 96
   TextHeight = 14
   object Label1: TLabel
-    Left = 12
-    Top = 100
+    Left = 11
+    Top = 124
     Width = 77
     Height = 14
     Caption = 'Jar Export List'
@@ -34,6 +34,20 @@ object frmMain: TfrmMain
     Height = 14
     Anchors = [akLeft, akBottom]
     Caption = 'If you want individual export, select and doubleclick...'
+  end
+  object Label3: TLabel
+    Left = 12
+    Top = 101
+    Width = 84
+    Height = 14
+    Caption = 'class out path :'
+  end
+  object lblClassPath: TLabel
+    Left = 101
+    Top = 101
+    Width = 25
+    Height = 14
+    Caption = 'path'
   end
   object edtJarPath: TLabeledEdit
     Left = 11
@@ -73,9 +87,9 @@ object frmMain: TfrmMain
   end
   object lvJarList: TListBox
     Left = 11
-    Top = 117
+    Top = 144
     Width = 591
-    Height = 231
+    Height = 204
     Anchors = [akLeft, akTop, akRight, akBottom]
     ImeName = 'Microsoft Office IME 2007'
     ItemHeight = 14
@@ -163,5 +177,10 @@ object frmMain: TfrmMain
     Caption = 'Open Folder'
     TabOrder = 11
     OnClick = btnOpenExportFolderClick
+  end
+  object XMLDocument1: TXMLDocument
+    Left = 200
+    Top = 96
+    DOMVendorDesc = 'MSXML'
   end
 end
