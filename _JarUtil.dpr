@@ -15,7 +15,8 @@ begin
   begin
     if LowerCase(ParamStr(1)) = 'silent' then
     begin
-      frmMain.MakeJarSilent;
+      if not frmMain.MakeJarSilent then
+         ExitCode := 1;
     end;
   end else
     Application.Run;
