@@ -166,18 +166,8 @@ object frmMain: TfrmMain
     TabOrder = 6
     WordWrap = False
   end
-  object cbxLog: TCheckBox
-    Left = 11
-    Top = 610
-    Width = 78
-    Height = 17
-    Anchors = [akLeft, akBottom]
-    Caption = 'View Log'
-    TabOrder = 7
-    OnClick = cbxLogClick
-  end
   object cbxOpenDir: TCheckBox
-    Left = 87
+    Left = 11
     Top = 610
     Width = 126
     Height = 17
@@ -187,7 +177,7 @@ object frmMain: TfrmMain
     OnClick = cbxOpenDirClick
   end
   object cbxBuild: TCheckBox
-    Left = 215
+    Left = 139
     Top = 610
     Width = 150
     Height = 17

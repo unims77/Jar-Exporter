@@ -30,8 +30,7 @@ exe는 Eclipse 프로젝트 루트(`.classpath`가 있는 곳)에 두고 실행�
 [Config]
 JarExe Path=...\bin\jar.exe   ; javac.exe 도 같은 폴더에서 찾는다
 Export Path=                  ; 비우면 <exe폴더>\JarExport
-View Log=0                    ; 체크박스를 클릭하면 프로그램이 다시 씀
-View Folder=0
+View Folder=0                 ; 체크박스를 클릭하면 프로그램이 다시 씀
 Build Before Export=1         ; 0이면 컴파일 없이 Eclipse 출력 폴더를 그대로 묶음
 [ExportConfig]
 EzQCNS.jar=CNSServer          ; jar 이름 = 클래스 폴더 아래의 패키지 폴더
@@ -47,7 +46,7 @@ EzQCNS.jar=CNSServer          ; jar 이름 = 클래스 폴더 아래의 패키�
 2. **컴파일**: `javac -XDignore.symbol.file -nowarn -encoding <enc> -source/-target <level> -g:<source,lines,vars> -d build/classes -cp <lib들> @build/sources.txt`. 인코딩, 레벨, 디버그 정보는 `.settings/*.prefs`에서 읽는다(`-g`를 빼면 지역변수 정보가 빠져 Eclipse 빌드보다 jar가 작아진다). 클래스패스는 `.classpath`의 `kind="lib"`를 **선언 순서 그대로** 읽는다. 순서가 바뀌면 다른 jar에 든 구버전 org.json이 잡힌다. 컴파일이 실패하면 jar를 하나도 만들지 않는다.
 3. **jar 생성**(`ArchiveJars`): 항목마다 `jar cf <jar>.tmp -C build\classes <패키지>`를 실행한 뒤 `MoveFileEx`로 교체한다. 실행 중인 서버가 jar를 잡고 있으면 이 단계에서 실패로 표시된다. 값이 `WebContent`인 항목만 `<exe폴더>\WebContent`를 묶는다.
 
-외부 프로세스는 `RunProcess`가 파이프로 stdout/stderr를 받아 한 줄씩 로그에 찍는다. 출력은 시스템 ANSI 코드페이지(CP949)로 해석한다. 작업 중에는 `Application.ProcessMessages`로 화면을 갱신한다. 그동안 다시 실행되지 않도록 버튼과 목록을 비활성화하고(`SetRunning`), 창도 닫히지 않게 막는다(`FormCloseQuery`). 끝나면 로그 전체를 `_JarUtil.log`(UTF-8)로 저장한다. "View Log"가 켜져 있으면 메인 창 위에 서브창(`ShowLogWindow`)을 띄워 같은 로그를 보여준다. 이 창은 코드로 만드는 `TForm`이라 dfm이 없고, 한 번 만든 뒤 재사용한다. 실패하면 진행바를 끝까지 채운 뒤 오류 상태(`pbsError`, 빨강)로 바꾸고 상태 글자도 빨갛게 표시한다. 이어서 `ShowFailDialog`가 로그에서 실패·오류 줄과 javac `error:` 줄을 최대 15줄 모아 오류 다이얼로그로 보여준다(silent 모드에서는 띄우지 않는다). jar.exe를 찾지 못하면 `Jar.exe Path` 글씨가 빨갛게 표시된다(`UpdateJarPathColor`).
+외부 프로세스는 `RunProcess`가 파이프로 stdout/stderr를 받아 한 줄씩 로그에 찍는다. 출력은 시스템 ANSI 코드페이지(CP949)로 해석한다. 작업 중에는 `Application.ProcessMessages`로 화면을 갱신한다. 그동안 다시 실행되지 않도록 버튼과 목록을 비활성화하고(`SetRunning`), 창도 닫히지 않게 막는다(`FormCloseQuery`). 끝나면 로그 전체를 `_JarUtil.log`(UTF-8)로 저장한다. 실패하면 진행바를 끝까지 채운 뒤 오류 상태(`pbsError`, 빨강)로 바꾸고 상태 글자도 빨갛게 표시한다. 이어서 `ShowFailDialog`가 로그에서 실패·오류 줄과 javac `error:` 줄을 최대 15줄 모아 오류 다이얼로그로 보여준다(silent 모드에서는 띄우지 않는다). jar.exe를 찾지 못하면 `Jar.exe Path` 글씨가 빨갛게 표시된다(`UpdateJarPathColor`).
 
 UI에서 "Export All"을 누르면 전체를, 목록 항목을 더블클릭하면 그 jar 하나만 만든다(두 경우 모두 컴파일은 전체). `_JarUtil.exe silent`는 창 없이 ini의 전체 목록을 처리하고, 실패하면 종료 코드 1을 반환한다.
 

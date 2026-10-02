@@ -15,7 +15,6 @@ type
     lvJarList: TListBox;
     Label1: TLabel;
     btnLoadConfig: TButton;
-    cbxLog: TCheckBox;
     cbxOpenDir: TCheckBox;
     btnOpenConfig: TButton;
     btnOpenFolder: TButton;
@@ -34,7 +33,6 @@ type
     procedure btnLoadConfigClick(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnMakeClick(Sender: TObject);
-    procedure cbxLogClick(Sender: TObject);
     procedure cbxOpenDirClick(Sender: TObject);
     procedure btnOpenConfigClick(Sender: TObject);
     procedure btnOpenFolderClick(Sender: TObject);
@@ -49,8 +47,6 @@ type
     FSrcEncoding: string;
     FSrcLevel   : string;
     FDebugOpt   : string;
-    FLogForm    : TForm;
-    FLogMemo    : TMemo;
 
     function  BaseDir: string;
     procedure Log(const Msg: string);
@@ -59,8 +55,6 @@ type
     procedure WriteConfigBool(const Key: string; Value: Boolean);
     procedure ReadEclipsePrefs;
     procedure UpdateClassPathLabel;
-    procedure ShowLogWindow;
-    procedure LogCloseClick(Sender: TObject);
     procedure ShowFailDialog;
     procedure UpdateJarPathColor;
     function  RunProcess(const CmdLine, WorkDir: string; out ExitCode: DWORD): Boolean;
@@ -613,9 +607,6 @@ begin
 
    if not FSilent then
    begin
-      if cbxLog.Checked then
-         ShowLogWindow;
-
       if cbxOpenDir.Checked and Result then
          ShellExecute(handle, 'open', PChar(ExportPath), '', nil, SW_NORMAL);
 
@@ -680,62 +671,6 @@ begin
 
    Application.MessageBox(PChar('Jar Export ' + lblStatus.Caption + #13#10 + Msg + #13#10#13#10 +
       '자세한 내용은 로그를 확인하세요.'), 'Jar Export 오류', MB_OK or MB_ICONERROR);
-end;
-
-// 결과 로그를 메인 창 위에 뜨는 서브창으로 보여준다 (한 번 만든 창을 재사용)
-procedure TfrmMain.ShowLogWindow;
-var
-   Panel : TPanel;
-   Btn   : TButton;
-begin
-   if FLogForm = nil then
-   begin
-      FLogForm := TForm.Create(Self);
-      FLogForm.Width       := 820;
-      FLogForm.Height      := 560;
-      FLogForm.Position    := poOwnerFormCenter;
-      FLogForm.PopupMode   := pmExplicit;
-      FLogForm.PopupParent := Self;
-      FLogForm.BorderIcons := [biSystemMenu, biMaximize];
-      FLogForm.Font.Assign(Font);
-
-      Panel := TPanel.Create(FLogForm);
-      Panel.Parent     := FLogForm;
-      Panel.Align      := alBottom;
-      Panel.Height     := 40;
-      Panel.BevelOuter := bvNone;
-
-      Btn := TButton.Create(FLogForm);
-      Btn.Parent  := Panel;
-      Btn.Caption := '닫기';
-      Btn.Width   := 90;
-      Btn.Top     := 8;
-      Btn.Left    := Panel.ClientWidth - Btn.Width - 10;
-      Btn.Anchors := [akTop, akRight];
-      Btn.Cancel  := True;
-      Btn.OnClick := LogCloseClick;
-
-      FLogMemo := TMemo.Create(FLogForm);
-      FLogMemo.Parent     := FLogForm;
-      FLogMemo.Align      := alClient;
-      FLogMemo.ReadOnly   := True;
-      FLogMemo.ScrollBars := ssBoth;
-      FLogMemo.WordWrap   := False;
-      FLogMemo.Font.Assign(memoLog.Font);
-   end;
-
-   FLogForm.Caption := 'Jar Export 로그 - ' + lblStatus.Caption;
-   FLogMemo.Lines.Assign(memoLog.Lines);
-   FLogForm.Show;
-   FLogForm.BringToFront;
-   // 결과 요약이 있는 마지막 줄로 이동
-   FLogMemo.SelStart := Length(FLogMemo.Text);
-   FLogMemo.Perform(EM_SCROLLCARET, 0, 0);
-end;
-
-procedure TfrmMain.LogCloseClick(Sender: TObject);
-begin
-   FLogForm.Close;
 end;
 
 // .settings 의 소스 인코딩과 Java 소스 레벨
@@ -808,7 +743,6 @@ begin
       edtExportPath.Text := ini.ReadString('Config', 'Export Path', ExtractFilePath(Application.ExeName) + 'JarExport');
       if Trim(edtExportPath.Text) = '' then
          edtExportPath.Text := ExtractFilePath(Application.ExeName) + 'JarExport';
-      cbxLog.Checked :=  ini.ReadBool('Config', 'View Log', True);
       cbxOpenDir.Checked :=  ini.ReadBool('Config', 'View Folder', True);
       cbxBuild.Checked :=  ini.ReadBool('Config', 'Build Before Export', True);
 
@@ -892,11 +826,6 @@ begin
    finally
       Ini.Free;
    end;
-end;
-
-procedure TfrmMain.cbxLogClick(Sender: TObject);
-begin
-   WriteConfigBool('View Log', cbxLog.Checked);
 end;
 
 procedure TfrmMain.cbxOpenDirClick(Sender: TObject);
